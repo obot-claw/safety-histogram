@@ -716,6 +716,12 @@
       key: "render",
       value: function render() {
         this.destroyCharts();
+        this.listingWrap.innerHTML = '';
+        this.currentTableData = [];
+        this.page = 1;
+        this.footnote.textContent = 'Hover over or click a bar for details.';
+        this.notes.innerHTML = '';
+        this.multiplesWrap.innerHTML = '';
         this.filteredData = this.currentFilteredData();
 
         if (!this.filteredData.length) {

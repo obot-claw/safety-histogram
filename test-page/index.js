@@ -22,6 +22,7 @@ d3.csv(
         group_by: 'ARM',
         compare_distributions: true
     });
+    window.__safetyHistogramInstance = instance;
     instance.init(data);
 }).catch(error => {
     console.error(error);
