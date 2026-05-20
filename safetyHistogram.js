@@ -423,10 +423,11 @@
         this.chartWrap = createElement('div', 'sh-chart-wrap');
         this.canvas = createElement('canvas', 'sh-chart');
         this.footnote = createElement('div', 'sh-footnote', 'Hover over or click a bar for details.');
+        this.groupControls = createElement('div', 'sh-group-controls');
         this.multiplesWrap = createElement('div', 'sh-multiples');
         this.listingWrap = createElement('div', 'sh-listing');
         this.chartWrap.append(this.canvas);
-        this.root.append(this.controls, this.notes, this.chartWrap, this.footnote, this.multiplesWrap, this.listingWrap);
+        this.root.append(this.controls, this.notes, this.chartWrap, this.footnote, this.groupControls, this.multiplesWrap, this.listingWrap);
         this.element.append(this.root);
         this.applyStyles();
       }
@@ -436,7 +437,7 @@
         if (document.getElementById('safety-histogram-nextgen-styles')) return;
         var style = document.createElement('style');
         style.id = 'safety-histogram-nextgen-styles';
-        style.textContent = "\n.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933}.sh-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin:.75rem 0 1rem;padding:1rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-actions button{padding:.35rem .6rem}.sh-hidden{display:none!important}";
+        style.textContent = "\n.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933}.sh-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 1rem;padding:.75rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control{display:inline-block;vertical-align:top;min-width:140px;margin:2px}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-control-fieldset{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 5px 0 0;padding:.35rem .45rem .5rem;border:1px solid #b8c0cc;border-radius:6px;background:white}.sh-control-fieldset legend{font-size:.78rem;font-weight:700;padding:0 .25rem;color:#52616f}.sh-control-fieldset .sh-control{margin:0 2px 2px}.sh-control-fieldset.sh-filters-fieldset .sh-control{min-width:150px}.sh-control-fieldset.sh-x-axis-limits-fieldset .sh-control,.sh-control-fieldset.sh-bins-fieldset .sh-control{min-width:110px}.sh-control-standalone{background:white;border:1px solid #d8dee4;border-radius:6px;padding:.35rem .45rem .5rem}.sh-group-controls{display:flex;justify-content:flex-end;margin:.5rem 0}.sh-group-controls .sh-control{min-width:180px}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-actions button{padding:.35rem .6rem}.sh-hidden{display:none!important}";
         document.head.append(style);
       }
     }, {
@@ -521,18 +522,29 @@
         var _this3 = this;
 
         this.controls.innerHTML = '';
+        this.groupControls.innerHTML = '';
 
         var addControl = function addControl(label, input) {
-          var wrap = createElement('div', 'sh-control');
+          var parent = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : _this3.controls;
+          var className = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
+          var wrap = createElement('div', "sh-control ".concat(className).trim());
           var lab = createElement('label', null, label);
           wrap.append(lab, input);
-
-          _this3.controls.append(wrap);
-
+          parent.append(wrap);
           return input;
         };
 
-        var measure = addControl('Measure', document.createElement('select'));
+        var addFieldset = function addFieldset(label) {
+          var fieldset = document.createElement('fieldset');
+          fieldset.className = "sh-control-fieldset ".concat(label.toLowerCase().replace(/[^a-z0-9]+/g, '-'), "-fieldset");
+          fieldset.append(createElement('legend', null, label));
+
+          _this3.controls.append(fieldset);
+
+          return fieldset;
+        };
+
+        var measure = addControl('Measure', document.createElement('select'), this.controls, 'sh-control-standalone');
         this.measures().forEach(function (value) {
           return option(measure, value, value, value === _this3.state.measure);
         });
@@ -545,15 +557,17 @@
           _this3.render();
         };
 
-        this.settings.filters.forEach(function (filter) {
-          if (!_this3.cleanData.some(function (row) {
+        var filterSpecs = this.settings.filters.filter(function (filter) {
+          var exists = _this3.cleanData.some(function (row) {
             return row[filter.value_col] !== undefined;
-          })) {
-            console.warn("The [ ".concat(filter.label, " ] filter has been removed because the variable does not exist."));
-            return;
-          }
+          });
 
-          var select = addControl(filter.label, document.createElement('select'));
+          if (!exists) console.warn("The [ ".concat(filter.label, " ] filter has been removed because the variable does not exist."));
+          return exists;
+        });
+        var filterParent = filterSpecs.length > 1 ? addFieldset('Filters') : this.controls;
+        filterSpecs.forEach(function (filter) {
+          var select = addControl(filter.label, document.createElement('select'), filterParent, filterSpecs.length > 1 ? '' : 'sh-control-standalone');
           option(select, '__all__', 'All', !_this3.state.filters[filter.value_col]);
           unique(_this3.cleanData.map(function (row) {
             return row[filter.value_col];
@@ -567,18 +581,8 @@
             _this3.render();
           };
         });
-        var group = addControl('Group by', document.createElement('select'));
-        this.settings.groups.forEach(function (spec) {
-          return option(group, spec.value_col, spec.label, spec.value_col === _this3.state.groupBy);
-        });
-
-        group.onchange = function () {
-          _this3.state.groupBy = group.value;
-
-          _this3.render();
-        };
-
-        var lower = addControl('Lower', document.createElement('input'));
+        var xAxisParent = addFieldset('X-axis Limits');
+        var lower = addControl('Lower', document.createElement('input'), xAxisParent);
         lower.type = 'number';
         lower.step = 'any';
         lower.value = this.state.lower == null ? '' : this.state.lower;
@@ -591,7 +595,7 @@
           _this3.render();
         };
 
-        var upper = addControl('Upper', document.createElement('input'));
+        var upper = addControl('Upper', document.createElement('input'), xAxisParent);
         upper.type = 'number';
         upper.step = 'any';
         upper.value = this.state.upper == null ? '' : this.state.upper;
@@ -604,7 +608,8 @@
           _this3.render();
         };
 
-        var algorithm = addControl('Algorithm', document.createElement('select'));
+        var binParent = addFieldset('Bins');
+        var algorithm = addControl('Algorithm', document.createElement('select'), binParent);
         ALGORITHMS.forEach(function (value) {
           return option(algorithm, value, value, value === _this3.state.algorithm);
         });
@@ -615,7 +620,7 @@
           _this3.render();
         };
 
-        var quantity = addControl('Quantity', document.createElement('input'));
+        var quantity = addControl('Quantity', document.createElement('input'), binParent);
         quantity.type = 'number';
         quantity.min = '1';
         quantity.step = '1';
@@ -630,7 +635,7 @@
           _this3.render();
         };
 
-        var width = addControl('Width', document.createElement('input'));
+        var width = addControl('Width', document.createElement('input'), binParent);
         width.type = 'number';
         width.min = '0';
         width.step = 'any';
@@ -658,7 +663,7 @@
 
           var inline = createElement('div', 'sh-control-inline');
           inline.append(nr, document.createTextNode('Show'));
-          addControl('Normal Range', inline);
+          addControl('Normal Range', inline, this.controls, 'sh-control-standalone');
         }
 
         var ticks = document.createElement('select');
@@ -671,7 +676,18 @@
           _this3.render();
         };
 
-        addControl('X-axis Ticks', ticks);
+        addControl('X-axis Ticks', ticks, this.controls, 'sh-control-standalone');
+        var group = addControl('Group charts by', document.createElement('select'), this.groupControls, 'sh-control-standalone');
+        this.settings.groups.forEach(function (spec) {
+          return option(group, spec.value_col, spec.label, spec.value_col === _this3.state.groupBy);
+        });
+        this.groupControls.style.display = this.settings.groups.length <= 1 ? 'none' : 'flex';
+
+        group.onchange = function () {
+          _this3.state.groupBy = group.value;
+
+          _this3.render();
+        };
       }
     }, {
       key: "normalizeDomain",
