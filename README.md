@@ -56,3 +56,27 @@ Click [here](https://rhoinc.github.io/safety-histogram/test-page/) to open an in
 - [Configuration](https://github.com/RhoInc/safety-histogram/wiki/Configuration)
 - [Data Guidelines](https://github.com/RhoInc/safety-histogram/wiki/Data-Guidelines)
 - [Technical Documentation](https://github.com/RhoInc/safety-histogram/wiki/Technical-Documentation)
+
+## Nextgen Chart.js refactor
+
+This fork is being modernized under P004 to remove the legacy `webcharts` dependency and provide a cleaner JavaScript renderer API. The current nextgen implementation uses Chart.js for the histogram and keeps the static chart API out of this package; static charts will remain in R-side packages such as `gsm.safety` or `safetyCharts`.
+
+Current lifecycle API:
+
+```js
+const chart = safetyHistogram('#container', settings);
+chart.init(data);
+chart.setData(newData);
+chart.setSettings(newSettings);
+chart.render();
+chart.resize();
+chart.destroy();
+```
+
+Demo and requirements artifacts:
+
+- Interactive demo: `test-page/index.html`
+- GitHub Pages demo index: `docs/index.html`
+- Requirements matrix: `docs/requirements-matrix.md`
+
+Known gaps in this first refactor pass: normality/group p-value annotations, listing search, sortable listing columns, and automated visual regression coverage.

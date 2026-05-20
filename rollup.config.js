@@ -18,7 +18,7 @@ export default {
         format: 'umd',
         globals: {
             d3: 'd3',
-            webcharts: 'webCharts'
+            'chart.js': 'Chart'
         },
     },
     external: (function() {
