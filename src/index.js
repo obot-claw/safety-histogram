@@ -82,6 +82,49 @@ function formatNumber(value, digits = 2) {
     return Number(value.toFixed(digits)).toString();
 }
 
+function formatPValue(value) {
+    if (!Number.isFinite(value)) return 'NA';
+    if (value < 0.001) return '<0.001';
+    if (value > 0.999) return '>0.999';
+    return value.toFixed(3);
+}
+
+function approximateNormalityP(values) {
+    const vals = values.map(Number).filter(Number.isFinite);
+    if (vals.length < 3) return NaN;
+    const m = mean(vals);
+    const s = sd(vals) || Number.EPSILON;
+    const skew = vals.reduce((sum, v) => sum + Math.pow((v - m) / s, 3), 0) / vals.length;
+    const kurtosis = vals.reduce((sum, v) => sum + Math.pow((v - m) / s, 4), 0) / vals.length;
+    const jb = (vals.length / 6) * (Math.pow(skew, 2) + Math.pow(kurtosis - 3, 2) / 4);
+    return Math.max(0.0001, Math.min(0.9999, Math.exp(-0.5 * jb)));
+}
+
+function approximateGroupP(groups) {
+    const entries = Object.entries(groups).map(([key, vals]) => [key, vals.map(Number).filter(Number.isFinite)]).filter(([, vals]) => vals.length);
+    if (entries.length < 2) return NaN;
+    const all = entries.flatMap(([, vals]) => vals);
+    const grand = mean(all);
+    const between = entries.reduce((sum, [, vals]) => sum + vals.length * Math.pow(mean(vals) - grand, 2), 0);
+    const within = entries.reduce((sum, [, vals]) => sum + vals.reduce((inner, v) => inner + Math.pow(v - mean(vals), 2), 0), 0);
+    const f = (between / Math.max(1, entries.length - 1)) / (within / Math.max(1, all.length - entries.length) || Number.EPSILON);
+    return Math.max(0.0001, Math.min(0.9999, Math.exp(-0.5 * f)));
+}
+
+function statisticalAnnotation(label, pValue, testName, url) {
+    const text = `${label}: p=${formatPValue(pValue)}`;
+    const annotation = createElement('div', 'sh-annotation');
+    const value = createElement('span', null, text);
+    value.title = `${testName}. Caution: This graphic has been thoroughly tested, but is not validated.`;
+    const link = createElement('a', 'sh-info', 'ⓘ');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.title = `${testName}. Caution: This graphic has been thoroughly tested, but is not validated.`;
+    annotation.append(value, document.createTextNode(' '), link);
+    return annotation;
+}
+
 function calculateBins(values, algorithm, customQuantity, customWidth, domain) {
     const n = values.length;
     const min = domain ? domain[0] : Math.min(...values);
@@ -202,6 +245,8 @@ class SafetyHistogram {
         this.cleanData = [];
         this.filteredData = [];
         this.currentTableData = [];
+        this.listingSearch = '';
+        this.listingSort = null;
         this.page = 1;
         this.charts = [];
         this.state = {
@@ -227,11 +272,12 @@ class SafetyHistogram {
         this.notes = createElement('div', 'sh-notes');
         this.chartWrap = createElement('div', 'sh-chart-wrap');
         this.canvas = createElement('canvas', 'sh-chart');
+        this.mainAnnotation = createElement('div', 'sh-main-annotation');
         this.footnote = createElement('div', 'sh-footnote', 'Hover over or click a bar for details.');
         this.groupControls = createElement('div', 'sh-group-controls');
         this.multiplesWrap = createElement('div', 'sh-multiples');
         this.listingWrap = createElement('div', 'sh-listing');
-        this.chartWrap.append(this.canvas);
+        this.chartWrap.append(this.canvas, this.mainAnnotation);
         this.root.append(this.controls, this.notes, this.chartWrap, this.footnote, this.groupControls, this.multiplesWrap, this.listingWrap);
         this.element.append(this.root);
         this.applyStyles();
@@ -242,7 +288,7 @@ class SafetyHistogram {
         const style = document.createElement('style');
         style.id = 'safety-histogram-nextgen-styles';
         style.textContent = `
-.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f2933}.sh-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 1rem;padding:.75rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control{display:inline-block;vertical-align:top;min-width:140px;margin:2px}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-control-fieldset{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 5px 0 0;padding:.35rem .45rem .5rem;border:1px solid #b8c0cc;border-radius:6px;background:white}.sh-control-fieldset legend{font-size:.78rem;font-weight:700;padding:0 .25rem;color:#52616f}.sh-control-fieldset .sh-control{margin:0 2px 2px}.sh-control-fieldset.sh-filters-fieldset .sh-control{min-width:150px}.sh-control-fieldset.sh-x-axis-limits-fieldset .sh-control,.sh-control-fieldset.sh-bins-fieldset .sh-control{min-width:110px}.sh-control-standalone{background:white;border:1px solid #d8dee4;border-radius:6px;padding:.35rem .45rem .5rem}.sh-group-controls{display:flex;justify-content:flex-end;margin:.5rem 0}.sh-group-controls .sh-control{min-width:180px}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-actions button{padding:.35rem .6rem}.sh-hidden{display:none!important}`;
+.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f2933}.sh-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 1rem;padding:.75rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control{display:inline-block;vertical-align:top;min-width:140px;margin:2px}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-control-fieldset{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 5px 0 0;padding:.35rem .45rem .5rem;border:1px solid #b8c0cc;border-radius:6px;background:white}.sh-control-fieldset legend{font-size:.78rem;font-weight:700;padding:0 .25rem;color:#52616f}.sh-control-fieldset .sh-control{margin:0 2px 2px}.sh-control-fieldset.sh-filters-fieldset .sh-control{min-width:150px}.sh-control-fieldset.sh-x-axis-limits-fieldset .sh-control,.sh-control-fieldset.sh-bins-fieldset .sh-control{min-width:110px}.sh-control-standalone{background:white;border:1px solid #d8dee4;border-radius:6px;padding:.35rem .45rem .5rem}.sh-group-controls{display:flex;justify-content:flex-end;margin:.5rem 0}.sh-group-controls .sh-control{min-width:180px}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-tools{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.sh-listing-search{padding:.35rem;border:1px solid #b8c0cc;border-radius:4px}.sh-listing-actions button{padding:.35rem .6rem}.sh-annotation,.sh-main-annotation{font-size:.85rem;background:rgba(255,255,255,.9);border:1px solid #d8dee4;border-radius:4px;padding:.25rem .4rem}.sh-main-annotation{position:absolute;right:1.25rem;top:1.25rem;z-index:2}.sh-info{text-decoration:none}.sh-hidden{display:none!important}`;
         document.head.append(style);
     }
 
@@ -404,8 +450,11 @@ class SafetyHistogram {
         this.destroyCharts();
         this.listingWrap.innerHTML = '';
         this.currentTableData = [];
+        this.listingSearch = '';
+        this.listingSort = null;
         this.page = 1;
         this.footnote.textContent = 'Hover over or click a bar for details.';
+        this.mainAnnotation.innerHTML = '';
         this.notes.innerHTML = '';
         this.multiplesWrap.innerHTML = '';
         this.filteredData = this.currentFilteredData();
@@ -471,6 +520,14 @@ class SafetyHistogram {
         chart.$shBins = inputs.bins;
         this.chart = chart;
         this.charts.push(chart);
+        this.drawMainAnnotation(this.filteredData);
+    }
+
+    drawMainAnnotation(rows) {
+        this.mainAnnotation.innerHTML = '';
+        if (!this.settings.test_normality) return;
+        const pValue = approximateNormalityP(rows.map(row => row.__sh_value));
+        this.mainAnnotation.append(statisticalAnnotation('Normality', pValue, 'Approximate Jarque-Bera normality screen', 'https://en.wikipedia.org/wiki/Jarque%E2%80%93Bera_test'));
     }
 
     drawMultiples() {
@@ -481,6 +538,10 @@ class SafetyHistogram {
             const rows = this.filteredData.filter(row => String(row[this.state.groupBy]) === String(groupValue));
             const panel = createElement('div', 'sh-multiple');
             panel.append(createElement('h3', null, `${groupValue} (${rows.length} records)`));
+            if (this.settings.compare_distributions) {
+                const groupedValues = Object.fromEntries(groups.map(value => [value, this.filteredData.filter(row => String(row[this.state.groupBy]) === String(value)).map(row => row.__sh_value)]));
+                panel.append(statisticalAnnotation('Group comparison', approximateGroupP(groupedValues), 'Approximate one-way ANOVA screen', 'https://en.wikipedia.org/wiki/One-way_analysis_of_variance'));
+            }
             const canvasWrap = createElement('div', 'sh-multiple-canvas');
             const canvas = document.createElement('canvas');
             canvasWrap.append(canvas);
@@ -506,6 +567,8 @@ class SafetyHistogram {
 
     showListing(records, bin, digits) {
         this.currentTableData = records;
+        this.listingSearch = '';
+        this.listingSort = null;
         this.page = 1;
         this.describeBin(bin, digits, true);
         this.renderListing();
@@ -514,27 +577,59 @@ class SafetyHistogram {
     renderListing() {
         const cols = this.settings.details;
         const pageSize = this.settings.page_size;
-        const rows = this.currentTableData;
+        let rows = [...this.currentTableData];
+        if (this.listingSearch) {
+            const query = this.listingSearch.toLowerCase();
+            rows = rows.filter(row => cols.some(col => String(row[col.value_col] == null ? '' : row[col.value_col]).toLowerCase().includes(query)));
+        }
+        if (this.listingSort) {
+            const { col, direction } = this.listingSort;
+            rows.sort((a, b) => {
+                const av = a[col.value_col];
+                const bv = b[col.value_col];
+                const an = Number(av);
+                const bn = Number(bv);
+                const cmp = Number.isFinite(an) && Number.isFinite(bn)
+                    ? an - bn
+                    : String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), undefined, { numeric: true });
+                return direction === 'asc' ? cmp : -cmp;
+            });
+        }
         const pages = Math.max(1, Math.ceil(rows.length / pageSize));
         this.page = Math.min(this.page, pages);
         const visible = rows.slice((this.page - 1) * pageSize, this.page * pageSize);
         this.listingWrap.innerHTML = '';
         const actions = createElement('div', 'sh-listing-actions');
-        actions.append(createElement('strong', null, `${rows.length} records`));
-        const buttons = createElement('div');
+        actions.append(createElement('strong', null, `${rows.length} of ${this.currentTableData.length} records`));
+        const tools = createElement('div', 'sh-listing-tools');
+        const search = createElement('input', 'sh-listing-search');
+        search.type = 'search';
+        search.placeholder = 'Search listing';
+        search.value = this.listingSearch;
+        search.oninput = () => { this.listingSearch = search.value; this.page = 1; this.renderListing(); };
+        tools.append(search);
         [['<<', 1], ['<', Math.max(1, this.page - 1)], ['>', Math.min(pages, this.page + 1)], ['>>', pages]].forEach(([label, page]) => {
             const button = createElement('button', null, label);
             button.onclick = () => { this.page = page; this.renderListing(); };
-            buttons.append(button);
+            tools.append(button);
         });
         const csv = createElement('button', null, 'Export: CSV');
         csv.onclick = () => this.exportCsv(rows, cols);
-        buttons.append(csv);
-        actions.append(buttons);
+        tools.append(csv);
+        actions.append(tools);
         const table = document.createElement('table');
         const thead = document.createElement('thead');
         const tr = document.createElement('tr');
-        cols.forEach(col => tr.append(createElement('th', null, col.label)));
+        cols.forEach(col => {
+            const th = createElement('th', null, col.label + (this.listingSort && this.listingSort.col.value_col === col.value_col ? (this.listingSort.direction === 'asc' ? ' ▲' : ' ▼') : ''));
+            th.onclick = () => {
+                const current = this.listingSort && this.listingSort.col.value_col === col.value_col ? this.listingSort.direction : null;
+                this.listingSort = { col, direction: current === 'asc' ? 'desc' : 'asc' };
+                this.page = 1;
+                this.renderListing();
+            };
+            tr.append(th);
+        });
         thead.append(tr); table.append(thead);
         const tbody = document.createElement('tbody');
         visible.forEach(row => {

@@ -226,6 +226,81 @@
     return Number(value.toFixed(digits)).toString();
   }
 
+  function formatPValue(value) {
+    if (!Number.isFinite(value)) return 'NA';
+    if (value < 0.001) return '<0.001';
+    if (value > 0.999) return '>0.999';
+    return value.toFixed(3);
+  }
+
+  function approximateNormalityP(values) {
+    var vals = values.map(Number).filter(Number.isFinite);
+    if (vals.length < 3) return NaN;
+    var m = mean(vals);
+    var s = sd(vals) || Number.EPSILON;
+    var skew = vals.reduce(function (sum, v) {
+      return sum + Math.pow((v - m) / s, 3);
+    }, 0) / vals.length;
+    var kurtosis = vals.reduce(function (sum, v) {
+      return sum + Math.pow((v - m) / s, 4);
+    }, 0) / vals.length;
+    var jb = vals.length / 6 * (Math.pow(skew, 2) + Math.pow(kurtosis - 3, 2) / 4);
+    return Math.max(0.0001, Math.min(0.9999, Math.exp(-0.5 * jb)));
+  }
+
+  function approximateGroupP(groups) {
+    var entries = Object.entries(groups).map(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2),
+          key = _ref2[0],
+          vals = _ref2[1];
+
+      return [key, vals.map(Number).filter(Number.isFinite)];
+    }).filter(function (_ref3) {
+      var _ref4 = _slicedToArray(_ref3, 2),
+          vals = _ref4[1];
+
+      return vals.length;
+    });
+    if (entries.length < 2) return NaN;
+    var all = entries.flatMap(function (_ref5) {
+      var _ref6 = _slicedToArray(_ref5, 2),
+          vals = _ref6[1];
+
+      return vals;
+    });
+    var grand = mean(all);
+    var between = entries.reduce(function (sum, _ref7) {
+      var _ref8 = _slicedToArray(_ref7, 2),
+          vals = _ref8[1];
+
+      return sum + vals.length * Math.pow(mean(vals) - grand, 2);
+    }, 0);
+    var within = entries.reduce(function (sum, _ref9) {
+      var _ref10 = _slicedToArray(_ref9, 2),
+          vals = _ref10[1];
+
+      return sum + vals.reduce(function (inner, v) {
+        return inner + Math.pow(v - mean(vals), 2);
+      }, 0);
+    }, 0);
+    var f = between / Math.max(1, entries.length - 1) / (within / Math.max(1, all.length - entries.length) || Number.EPSILON);
+    return Math.max(0.0001, Math.min(0.9999, Math.exp(-0.5 * f)));
+  }
+
+  function statisticalAnnotation(label, pValue, testName, url) {
+    var text = "".concat(label, ": p=").concat(formatPValue(pValue));
+    var annotation = createElement('div', 'sh-annotation');
+    var value = createElement('span', null, text);
+    value.title = "".concat(testName, ". Caution: This graphic has been thoroughly tested, but is not validated.");
+    var link = createElement('a', 'sh-info', 'ⓘ');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.title = "".concat(testName, ". Caution: This graphic has been thoroughly tested, but is not validated.");
+    annotation.append(value, document.createTextNode(' '), link);
+    return annotation;
+  }
+
   function calculateBins(values, algorithm, customQuantity, customWidth, domain) {
     var n = values.length;
     var min = domain ? domain[0] : Math.min.apply(Math, _toConsumableArray(values));
@@ -362,8 +437,8 @@
             bin: bin,
             index: index
           };
-        }).filter(function (_ref) {
-          var bin = _ref.bin;
+        }).filter(function (_ref11) {
+          var bin = _ref11.bin;
           return bin.upper >= instance.state.normalRange.low && bin.lower <= instance.state.normalRange.high;
         });
         if (!matched.length) return;
@@ -395,6 +470,8 @@
       this.cleanData = [];
       this.filteredData = [];
       this.currentTableData = [];
+      this.listingSearch = '';
+      this.listingSort = null;
       this.page = 1;
       this.charts = [];
       this.state = {
@@ -422,11 +499,12 @@
         this.notes = createElement('div', 'sh-notes');
         this.chartWrap = createElement('div', 'sh-chart-wrap');
         this.canvas = createElement('canvas', 'sh-chart');
+        this.mainAnnotation = createElement('div', 'sh-main-annotation');
         this.footnote = createElement('div', 'sh-footnote', 'Hover over or click a bar for details.');
         this.groupControls = createElement('div', 'sh-group-controls');
         this.multiplesWrap = createElement('div', 'sh-multiples');
         this.listingWrap = createElement('div', 'sh-listing');
-        this.chartWrap.append(this.canvas);
+        this.chartWrap.append(this.canvas, this.mainAnnotation);
         this.root.append(this.controls, this.notes, this.chartWrap, this.footnote, this.groupControls, this.multiplesWrap, this.listingWrap);
         this.element.append(this.root);
         this.applyStyles();
@@ -437,7 +515,7 @@
         if (document.getElementById('safety-histogram-nextgen-styles')) return;
         var style = document.createElement('style');
         style.id = 'safety-histogram-nextgen-styles';
-        style.textContent = "\n.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933}.sh-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 1rem;padding:.75rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control{display:inline-block;vertical-align:top;min-width:140px;margin:2px}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-control-fieldset{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 5px 0 0;padding:.35rem .45rem .5rem;border:1px solid #b8c0cc;border-radius:6px;background:white}.sh-control-fieldset legend{font-size:.78rem;font-weight:700;padding:0 .25rem;color:#52616f}.sh-control-fieldset .sh-control{margin:0 2px 2px}.sh-control-fieldset.sh-filters-fieldset .sh-control{min-width:150px}.sh-control-fieldset.sh-x-axis-limits-fieldset .sh-control,.sh-control-fieldset.sh-bins-fieldset .sh-control{min-width:110px}.sh-control-standalone{background:white;border:1px solid #d8dee4;border-radius:6px;padding:.35rem .45rem .5rem}.sh-group-controls{display:flex;justify-content:flex-end;margin:.5rem 0}.sh-group-controls .sh-control{min-width:180px}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-actions button{padding:.35rem .6rem}.sh-hidden{display:none!important}";
+        style.textContent = "\n.safety-histogram{width:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#1f2933}.sh-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 1rem;padding:.75rem;border:1px solid #d8dee4;border-radius:8px;background:#f6f8fa}.sh-control{display:inline-block;vertical-align:top;min-width:140px;margin:2px}.sh-control label{display:block;font-size:.8rem;font-weight:700;margin-bottom:.2rem}.sh-control select,.sh-control input{width:100%;box-sizing:border-box;padding:.35rem;border:1px solid #b8c0cc;border-radius:4px;background:white}.sh-control-inline{display:flex;align-items:center;gap:.4rem}.sh-control-fieldset{display:inline-flex;flex-wrap:wrap;gap:.25rem;margin:0 5px 0 0;padding:.35rem .45rem .5rem;border:1px solid #b8c0cc;border-radius:6px;background:white}.sh-control-fieldset legend{font-size:.78rem;font-weight:700;padding:0 .25rem;color:#52616f}.sh-control-fieldset .sh-control{margin:0 2px 2px}.sh-control-fieldset.sh-filters-fieldset .sh-control{min-width:150px}.sh-control-fieldset.sh-x-axis-limits-fieldset .sh-control,.sh-control-fieldset.sh-bins-fieldset .sh-control{min-width:110px}.sh-control-standalone{background:white;border:1px solid #d8dee4;border-radius:6px;padding:.35rem .45rem .5rem}.sh-group-controls{display:flex;justify-content:flex-end;margin:.5rem 0}.sh-group-controls .sh-control{min-width:180px}.sh-notes{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;margin:.5rem 0}.sh-warning{color:#9a3412}.sh-chart-wrap{height:460px;position:relative;border:1px solid #d8dee4;border-radius:8px;padding:1rem;background:white}.sh-footnote{margin:.75rem 0;padding:.65rem;border-top:1px solid #d8dee4;border-bottom:1px solid #d8dee4}.sh-multiples{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:1rem}.sh-multiple{border:1px solid #d8dee4;border-radius:8px;padding:.75rem;background:#fff}.sh-multiple h3{font-size:1rem;margin:0 0 .5rem}.sh-multiple-canvas{height:220px}.sh-listing{margin-top:1rem}.sh-listing table{width:100%;border-collapse:collapse;font-size:.9rem}.sh-listing th,.sh-listing td{border:1px solid #d8dee4;padding:.35rem;text-align:left}.sh-listing th{background:#f6f8fa;cursor:pointer}.sh-listing-actions{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:.5rem 0}.sh-listing-tools{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.sh-listing-search{padding:.35rem;border:1px solid #b8c0cc;border-radius:4px}.sh-listing-actions button{padding:.35rem .6rem}.sh-annotation,.sh-main-annotation{font-size:.85rem;background:rgba(255,255,255,.9);border:1px solid #d8dee4;border-radius:4px;padding:.25rem .4rem}.sh-main-annotation{position:absolute;right:1.25rem;top:1.25rem;z-index:2}.sh-info{text-decoration:none}.sh-hidden{display:none!important}";
         document.head.append(style);
       }
     }, {
@@ -719,10 +797,10 @@
         var _this5 = this;
 
         return this.currentMeasureData().filter(function (row) {
-          return Object.entries(_this5.state.filters).every(function (_ref2) {
-            var _ref3 = _slicedToArray(_ref2, 2),
-                key = _ref3[0],
-                value = _ref3[1];
+          return Object.entries(_this5.state.filters).every(function (_ref12) {
+            var _ref13 = _slicedToArray(_ref12, 2),
+                key = _ref13[0],
+                value = _ref13[1];
 
             return !value || String(row[key]) === String(value);
           });
@@ -734,8 +812,11 @@
         this.destroyCharts();
         this.listingWrap.innerHTML = '';
         this.currentTableData = [];
+        this.listingSearch = '';
+        this.listingSort = null;
         this.page = 1;
         this.footnote.textContent = 'Hover over or click a bar for details.';
+        this.mainAnnotation.innerHTML = '';
         this.notes.innerHTML = '';
         this.multiplesWrap.innerHTML = '';
         this.filteredData = this.currentFilteredData();
@@ -865,6 +946,17 @@
         chart.$shBins = inputs.bins;
         this.chart = chart;
         this.charts.push(chart);
+        this.drawMainAnnotation(this.filteredData);
+      }
+    }, {
+      key: "drawMainAnnotation",
+      value: function drawMainAnnotation(rows) {
+        this.mainAnnotation.innerHTML = '';
+        if (!this.settings.test_normality) return;
+        var pValue = approximateNormalityP(rows.map(function (row) {
+          return row.__sh_value;
+        }));
+        this.mainAnnotation.append(statisticalAnnotation('Normality', pValue, 'Approximate Jarque-Bera normality screen', 'https://en.wikipedia.org/wiki/Jarque%E2%80%93Bera_test'));
       }
     }, {
       key: "drawMultiples",
@@ -883,6 +975,18 @@
 
           var panel = createElement('div', 'sh-multiple');
           panel.append(createElement('h3', null, "".concat(groupValue, " (").concat(rows.length, " records)")));
+
+          if (_this8.settings.compare_distributions) {
+            var groupedValues = Object.fromEntries(groups.map(function (value) {
+              return [value, _this8.filteredData.filter(function (row) {
+                return String(row[_this8.state.groupBy]) === String(value);
+              }).map(function (row) {
+                return row.__sh_value;
+              })];
+            }));
+            panel.append(statisticalAnnotation('Group comparison', approximateGroupP(groupedValues), 'Approximate one-way ANOVA screen', 'https://en.wikipedia.org/wiki/One-way_analysis_of_variance'));
+          }
+
           var canvasWrap = createElement('div', 'sh-multiple-canvas');
           var canvas = document.createElement('canvas');
           canvasWrap.append(canvas);
@@ -949,6 +1053,8 @@
       key: "showListing",
       value: function showListing(records, bin, digits) {
         this.currentTableData = records;
+        this.listingSearch = '';
+        this.listingSort = null;
         this.page = 1;
         this.describeBin(bin, digits, true);
         this.renderListing();
@@ -960,18 +1066,58 @@
 
         var cols = this.settings.details;
         var pageSize = this.settings.page_size;
-        var rows = this.currentTableData;
+
+        var rows = _toConsumableArray(this.currentTableData);
+
+        if (this.listingSearch) {
+          var query = this.listingSearch.toLowerCase();
+          rows = rows.filter(function (row) {
+            return cols.some(function (col) {
+              return String(row[col.value_col] == null ? '' : row[col.value_col]).toLowerCase().includes(query);
+            });
+          });
+        }
+
+        if (this.listingSort) {
+          var _this$listingSort = this.listingSort,
+              col = _this$listingSort.col,
+              direction = _this$listingSort.direction;
+          rows.sort(function (a, b) {
+            var av = a[col.value_col];
+            var bv = b[col.value_col];
+            var an = Number(av);
+            var bn = Number(bv);
+            var cmp = Number.isFinite(an) && Number.isFinite(bn) ? an - bn : String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), undefined, {
+              numeric: true
+            });
+            return direction === 'asc' ? cmp : -cmp;
+          });
+        }
+
         var pages = Math.max(1, Math.ceil(rows.length / pageSize));
         this.page = Math.min(this.page, pages);
         var visible = rows.slice((this.page - 1) * pageSize, this.page * pageSize);
         this.listingWrap.innerHTML = '';
         var actions = createElement('div', 'sh-listing-actions');
-        actions.append(createElement('strong', null, "".concat(rows.length, " records")));
-        var buttons = createElement('div');
-        [['<<', 1], ['<', Math.max(1, this.page - 1)], ['>', Math.min(pages, this.page + 1)], ['>>', pages]].forEach(function (_ref4) {
-          var _ref5 = _slicedToArray(_ref4, 2),
-              label = _ref5[0],
-              page = _ref5[1];
+        actions.append(createElement('strong', null, "".concat(rows.length, " of ").concat(this.currentTableData.length, " records")));
+        var tools = createElement('div', 'sh-listing-tools');
+        var search = createElement('input', 'sh-listing-search');
+        search.type = 'search';
+        search.placeholder = 'Search listing';
+        search.value = this.listingSearch;
+
+        search.oninput = function () {
+          _this9.listingSearch = search.value;
+          _this9.page = 1;
+
+          _this9.renderListing();
+        };
+
+        tools.append(search);
+        [['<<', 1], ['<', Math.max(1, this.page - 1)], ['>', Math.min(pages, this.page + 1)], ['>>', pages]].forEach(function (_ref14) {
+          var _ref15 = _slicedToArray(_ref14, 2),
+              label = _ref15[0],
+              page = _ref15[1];
 
           var button = createElement('button', null, label);
 
@@ -981,7 +1127,7 @@
             _this9.renderListing();
           };
 
-          buttons.append(button);
+          tools.append(button);
         });
         var csv = createElement('button', null, 'Export: CSV');
 
@@ -989,13 +1135,26 @@
           return _this9.exportCsv(rows, cols);
         };
 
-        buttons.append(csv);
-        actions.append(buttons);
+        tools.append(csv);
+        actions.append(tools);
         var table = document.createElement('table');
         var thead = document.createElement('thead');
         var tr = document.createElement('tr');
         cols.forEach(function (col) {
-          return tr.append(createElement('th', null, col.label));
+          var th = createElement('th', null, col.label + (_this9.listingSort && _this9.listingSort.col.value_col === col.value_col ? _this9.listingSort.direction === 'asc' ? ' ▲' : ' ▼' : ''));
+
+          th.onclick = function () {
+            var current = _this9.listingSort && _this9.listingSort.col.value_col === col.value_col ? _this9.listingSort.direction : null;
+            _this9.listingSort = {
+              col: col,
+              direction: current === 'asc' ? 'desc' : 'asc'
+            };
+            _this9.page = 1;
+
+            _this9.renderListing();
+          };
+
+          tr.append(th);
         });
         thead.append(tr);
         table.append(thead);

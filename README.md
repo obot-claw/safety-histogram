@@ -79,4 +79,4 @@ Demo and requirements artifacts:
 - GitHub Pages demo index: `docs/index.html`
 - Requirements matrix: `docs/requirements-matrix.md`
 
-Known gaps in this first refactor pass: normality/group p-value annotations, listing search, sortable listing columns, and automated visual regression coverage.
+Known gaps in this refactor pass: statistical annotations are browser-side screening approximations, not validated statistical procedures; automated visual regression coverage still needs to be added.
