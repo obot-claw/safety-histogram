@@ -4,7 +4,7 @@ module.exports = defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   expect: { timeout: 5_000 },
-  reporter: [['list'], ['html', { outputFolder: 'test-results/playwright-report', open: 'never' }]],
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:8098',
     trace: 'on-first-retry',
