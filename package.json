@@ -34,7 +34,10 @@
     "format-bundle": "prettier --print-width=100 --tab-width=4 --single-quote --write ./safetyHistogram.js",
     "test": "npm run build",
     "test-page": "start chrome ./test-page/index.html && start firefox ./test-page/index.html && start iexplore file://%CD%/test-page/index.html",
-    "watch": "rollup -c -w"
+    "watch": "rollup -c -w",
+    "demo": "python3 -m http.server 8098",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",
