@@ -18,10 +18,10 @@ Source: RhoInc safety-histogram wiki Technical Documentation and Data Guidelines
 | SH-CHART-002 | Hovering over bars reports count and value range. | Implemented via tooltip and footnote. |
 | SH-CHART-003 | Clicking a bar opens linked listing. | Implemented. |
 | SH-CHART-004 | Group-by control renders grouped histograms. | Implemented. |
-| SH-CHART-005 | Normality and group-comparison p-value annotations. | Not yet implemented; planned follow-up. |
+| SH-CHART-005 | Normality and group-comparison p-value annotations. | Implemented as approximate browser-side screening annotations with info-icon links and validation disclaimer. |
 | SH-LIST-001 | Listing shows record details for clicked bin. | Implemented. |
 | SH-LIST-002 | Listing pagination supports first/previous/next/last. | Implemented. |
 | SH-LIST-003 | Listing CSV export is available. | Implemented. |
-| SH-LIST-004 | Listing search and sortable columns. | Not yet implemented; planned follow-up. |
+| SH-LIST-004 | Listing search and sortable columns. | Implemented. |
 | SH-API-001 | Expose clean nextgen lifecycle API. | Implemented: `init`, `setData`, `setSettings`, `render`, `resize`, `destroy`. |
 | SH-API-002 | Do not preserve Webcharts API as a requirement. | Implemented by replacing Webcharts dependency. |
