@@ -328,3 +328,48 @@ Recommended future stable selectors:
 - After the harness exists, run the proposed Playwright tests before changing product behavior. Expected first failures are likely `SH-FUNC-004C`, `SH-FUNC-005C`, color for `SH-FUNC-004A`, and console noise on `SH-FUNC-010`/`SH-FUNC-011`/`SH-FUNC-012` clicks.
 - Prefer browser evidence as primary for all ten reviewed rows because they are UI/rendered behavior requirements. Use Vitest only to pin configuration defaults and listing-column setup where it reduces browser-test complexity.
 - If Jeremy wants exact legacy visual parity, clarify whether the normal-range band must literally be gray or whether the current translucent colored band is acceptable.
+
+## Follow-up: setup/write-tests skill split trial
+
+This branch now contains a first executable test-driver harness, split according to the safety-agent skills:
+
+- `p004-test-setup`: checked requirement matrix readiness, installed test dependencies, added scripts/config/fixture page.
+- `p004-write-tests`: wrote concrete Vitest and Playwright tests for reviewed histogram rows.
+
+Files added by the write-tests phase:
+
+- `playwright.config.js`
+- `test/fixtures/safetyHistogramReviewedFixture.js`
+- `test/safety-histogram.requirements.test.js`
+- `test-page/requirements/index.html`
+- `test-page/requirements/requirements.js`
+- `tests/browser/safety-histogram.requirements.spec.js`
+
+Package scripts added:
+
+- `npm run test:unit`
+- `npm run test:browser`
+- `npm run serve:test`
+
+Commands run on 2026-05-26:
+
+```text
+npm --cache /Users/obot/.openclaw/tmp/npm-cache install --save-dev vitest @playwright/test jsdom http-server
+npm run test:unit
+PLAYWRIGHT_BROWSERS_PATH=/Users/obot/.openclaw/tmp/ms-playwright npx playwright install chromium
+PLAYWRIGHT_BROWSERS_PATH=/Users/obot/.openclaw/tmp/ms-playwright npm run test:browser
+```
+
+Results:
+
+- `npm run test:unit`: passed, 3 tests / 1 file.
+- First `npm run test:browser`: failed because Playwright browser binaries were not installed.
+- After installing Chromium to a writable sandbox cache, `npm run test:browser`: still failed before page execution because sandboxed Chromium cannot register its macOS Mach port:
+  - `bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer... Permission denied (1100)`
+
+Interpretation:
+
+- The setup/write-tests skill split is useful and produced real tests, not just a plan.
+- Unit-level evidence can run in the current sandbox.
+- Direct Playwright browser execution remains blocked in this sandbox. Browser tests should run in GitHub Actions or through OpenClaw's managed browser path rather than launching Chromium directly from the sandbox.
+- No implementation changes were made in this commit. This remains a `test-driver:` change set.

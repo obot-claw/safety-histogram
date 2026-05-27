@@ -34,20 +34,27 @@
     "format-bundle": "prettier --print-width=100 --tab-width=4 --single-quote --write ./safetyHistogram.js",
     "test": "node ./test/shapiro-wilk-normality-test/generate-results.js && node ./test/kolmogorov-smirnov-two-sample-test/generate-results.js",
     "test-page": "start chrome ./test-page/index.html && start firefox ./test-page/index.html && start iexplore file://%CD%/test-page/index.html",
-    "watch": "rollup -c -w"
+    "watch": "rollup -c -w",
+    "test:unit": "vitest run test/*.requirements.test.js --environment jsdom",
+    "test:browser": "playwright test tests/browser/*.requirements.spec.js --project=chromium",
+    "serve:test": "http-server . -p 4173 -c-1"
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",
     "@babel/plugin-external-helpers": "^7.2.0",
     "@babel/preset-env": "^7.4.5",
     "@babel/register": "^7.7.0",
+    "@playwright/test": "^1.60.0",
     "csv-parse": "^4.8.2",
     "csv-writer": "^1.5.0",
+    "http-server": "^14.1.1",
+    "jsdom": "^29.1.1",
     "node-fetch": "^2.6.0",
     "prettier": "^1.19.1",
     "rollup": "^1.27.1",
     "rollup-plugin-babel": "^4.3.3",
-    "rollup-plugin-json": "^4.0.0"
+    "rollup-plugin-json": "^4.0.0",
+    "vitest": "^4.1.7"
   },
   "repository": {
     "type": "git",
