@@ -373,3 +373,18 @@ Interpretation:
 - Unit-level evidence can run in the current sandbox.
 - Direct Playwright browser execution remains blocked in this sandbox. Browser tests should run in GitHub Actions or through OpenClaw's managed browser path rather than launching Chromium directly from the sandbox.
 - No implementation changes were made in this commit. This remains a `test-driver:` change set.
+
+## Follow-up: GitHub Actions test-driver framework
+
+Added `.github/workflows/test-driver.yml` for CI execution of the test-driver harness.
+
+Jobs:
+
+- `unit`: installs with `npm ci`, runs `npm run test:unit`, runs legacy `npm test`, and fails if the legacy result generator mutates committed result CSVs.
+- `browser`: installs with `npm ci`, installs Playwright Chromium with system dependencies, runs `npm run test:browser`, and uploads Playwright reports/traces on success or failure.
+
+Purpose:
+
+- Keep browser execution out of the local macOS sandbox where direct Chromium launch is blocked by Mach port permissions.
+- Make test-driver commits produce visible GHA evidence on the PR.
+- Preserve separation between test-driver evidence and implementation work.
