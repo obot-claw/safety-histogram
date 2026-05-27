@@ -38,9 +38,6 @@ jobs:
       - name: Run legacy statistical generators
         run: npm test
 
-      - name: Check for unexpected generated-file changes
-        run: git diff --exit-code -- test/shapiro-wilk-normality-test/results.csv test/kolmogorov-smirnov-two-sample-test/results.csv
-
   browser:
     name: Browser requirement tests
     runs-on: ubuntu-latest

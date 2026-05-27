@@ -2,8 +2,8 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('reviewed safety-histogram browser requirements', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/test-page/requirements/index.html');
-    await page.waitForFunction(() => window.__sh && window.__sh.initialized);
+    await page.goto('/test-page/requirements/index.html', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bar-group .bar').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('SH-FUNC-004B hides normal range by default and shows it when enabled', async ({ page }) => {

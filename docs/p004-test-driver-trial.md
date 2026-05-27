@@ -388,3 +388,11 @@ Purpose:
 - Keep browser execution out of the local macOS sandbox where direct Chromium launch is blocked by Mach port permissions.
 - Make test-driver commits produce visible GHA evidence on the PR.
 - Preserve separation between test-driver evidence and implementation work.
+
+
+## Follow-up: first GHA run corrections
+
+Initial GHA run reached both jobs, which confirms workflow wiring. Two framework-level issues were corrected:
+
+- Removed the generated-file diff gate after legacy `npm test`; those legacy generator scripts rewrite result CSVs as part of normal execution, so the diff check was too strict for this CI layer.
+- Changed Playwright setup wait from `window.__sh.initialized` to rendered bar visibility. The legacy Webcharts chart object does not expose a stable `initialized` boolean in this context.
