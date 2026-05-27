@@ -28,7 +28,7 @@ test.describe('reviewed safety-histogram browser requirements', () => {
     await expect(page.locator('.sh-listing')).toContainText('Result');
     await expect(page.locator('.sh-listing')).toContainText('Lower Limit of Normal');
     await expect(page.locator('.sh-listing')).toContainText('Upper Limit of Normal');
-    await expect(page.locator('.bar-details')).toContainText('Table displays');
+    await expect(page.locator('.sh-foot-note--bar-details')).toContainText('Table displays');
 
     const opacities = await page.locator('.bar-group .bar').evaluateAll(bars =>
       bars.map(bar => bar.getAttribute('fill-opacity'))

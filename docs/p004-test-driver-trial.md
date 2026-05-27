@@ -396,3 +396,8 @@ Initial GHA run reached both jobs, which confirms workflow wiring. Two framework
 
 - Removed the generated-file diff gate after legacy `npm test`; those legacy generator scripts rewrite result CSVs as part of normal execution, so the diff check was too strict for this CI layer.
 - Changed Playwright setup wait from `window.__sh.initialized` to rendered bar visibility. The legacy Webcharts chart object does not expose a stable `initialized` boolean in this context.
+
+
+## Follow-up: browser selector correction
+
+The first successful GHA browser launch exposed a selector issue in the test, not a sandbox issue. The detail footnote selector was corrected from `.bar-details` to the actual legacy class `.sh-foot-note--bar-details`.
