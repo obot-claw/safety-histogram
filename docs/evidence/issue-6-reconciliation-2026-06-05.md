@@ -34,6 +34,18 @@ Scope: reconcile implementation PR #1 (`p004-nextgen-chartjs-histogram`) with ev
 | `SH-API-001` | Clean nextgen lifecycle API: `init`, `setData`, `setSettings`, `render`, `resize`, `destroy`. | Not covered in current `SH-FUNC-*` trial. | No executable PR #2 assertion. | Needs unit/API harness row. |
 | `SH-API-002` | Webcharts API preservation is not required. | Not covered in current `SH-FUNC-*` trial. | PR #2 is currently Webcharts/legacy-selector-oriented. | PR #2 must be adapted before it can validate PR #1's non-Webcharts API. |
 
+## Follow-up harness adaptation
+
+This branch now carries a PR #1-native Playwright harness in `tests/e2e/safety-histogram.spec.js` plus `.github/workflows/test-driver.yml`. The harness keeps the PR #2 intent but adapts it to Chart.js/canvas behavior instead of legacy SVG selectors. New executable rows cover:
+
+- Chart.js canvas bar selection -> linked listing state and selected-bin footnote (`SH-CHART-003`, `SH-LIST-001`).
+- Listing pagination, search, sortable headers, and CSV download (`SH-LIST-002`, `SH-LIST-003`, `SH-LIST-004`).
+- X-axis lower/upper redraw and invalid-range normalization (`SH-CTRL-005`).
+- Normality and group-comparison p-value approximation disclaimer (`SH-CHART-005`).
+- Lifecycle API methods and return behavior for `init`, `setData`, `setSettings`, `render`, `resize`, and `destroy` (`SH-API-001`).
+
+The adapted tests intercept the demo fixture request with deterministic clinical-trial rows, then use the exposed nextgen instance and Chart.js bar metadata to exercise the canvas bar selection handler. This avoids PR #2's non-portable `.bar-group .bar` selectors while preserving behavior-level coverage.
+
 ## Harness comparison result
 
 A direct branch merge of PR #2 into PR #1 is not clean:
@@ -69,25 +81,22 @@ npm test
 Result: `npm test` passed and rebuilt `safetyHistogram.js`.
 
 ```text
+node --check tests/e2e/safety-histogram.spec.js
 npm run test:e2e -- --project=chromium
 ```
 
-Result: blocked before executing assertions because Playwright's Chromium executable is not installed in the local runner cache:
+Result: syntax check passed. The browser run is still blocked before executing assertions by the local macOS Chromium Mach port sandbox:
 
 ```text
-browserType.launch: Executable doesn't exist at /Users/obot/Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-arm64/chrome-headless-shell
-Please run: npx playwright install
+FATAL:base/apple/mach_port_rendezvous_mac.cc:159] Check failed: kr == KERN_SUCCESS. bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer: Permission denied (1100)
 ```
 
-I did not run a browser install from this autonomous block because it writes outside the workspace cache and the PR #2 harness still needs selector adaptation before it can validate PR #1.
+I installed/used Playwright Chromium under `/Users/obot/.openclaw/tmp/ms-playwright` to avoid the default external cache, but the runner still cannot launch Chromium because of the known macOS Mach port sandbox. The new GitHub Actions workflow installs Chromium on Ubuntu and should provide executable browser evidence once pushed.
 
 ## Recommended sequence
 
 1. Keep PR #2 as the reviewed-requirement harness baseline, but adapt it onto PR #1 rather than merging it wholesale.
-2. First adapt browser selectors/test strategy for Chart.js canvas behavior:
-   - Normal range: assert PR #1's Chart.js normal-range annotation/visual artifact or expose a stable test hook.
-   - Bar click/listing: click deterministic canvas coordinates or expose a fixture/test hook for selecting a bin.
-   - Selected state: replace SVG opacity assertions with PR #1's selected-bin/listing state assertions.
-3. Add missing executable rows for PR #1 matrix claims: listing pagination, CSV export, listing search, sortable headers, lifecycle API, and p-value approximation disclaimer.
-4. Update the PR #1 body/ready-review note so p-values/search/sort are classified as implemented-with-coverage/validation-gaps rather than absent implementation.
-5. Re-run GitHub Actions/browser evidence after the adapted harness lands.
+2. Land the adapted PR #1 browser harness and workflow, then use GitHub Actions as the authoritative browser evidence because local Chromium remains sandbox-blocked.
+3. Add a stable assertion for the Chart.js normal-range overlay if reviewer requires visual proof beyond the control/default-state and p-value/listing coverage now present.
+4. Update the PR #1 body/ready-review note so p-values/search/sort are classified as implemented-with-executable-coverage/validation-gaps rather than absent implementation.
+5. Re-run GitHub Actions/browser evidence after this adapted harness lands.
