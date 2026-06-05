@@ -78,5 +78,6 @@ Demo and requirements artifacts:
 - Interactive demo: `test-page/index.html`
 - GitHub Pages demo index: `docs/index.html`
 - Requirements matrix: `docs/requirements-matrix.md`
+- Issue #6 evidence reconciliation: `docs/evidence/issue-6-reconciliation-2026-06-05.md`
 
 Known gaps in this refactor pass: statistical annotations are browser-side screening approximations, not validated statistical procedures; automated visual regression coverage still needs to be added.
