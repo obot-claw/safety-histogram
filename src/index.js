@@ -217,6 +217,7 @@ function normalRangePlugin(instance) {
     return {
         id: `normal-range-${Math.random().toString(36).slice(2)}`,
         beforeDatasetsDraw(chart) {
+            chart.$shNormalRangeOverlay = null;
             if (!instance.state.displayNormalRange || !instance.state.normalRange) return;
             const { ctx, chartArea, scales } = chart;
             const bins = chart.$shBins || [];
@@ -228,9 +229,22 @@ function normalRangePlugin(instance) {
             const end = matched[matched.length - 1].index + 0.5;
             const left = scales.x.getPixelForValue(start);
             const right = scales.x.getPixelForValue(end);
+            const clampedLeft = Math.max(chartArea.left, left);
+            const clampedRight = Math.min(chartArea.right, right);
+            const width = Math.max(0, clampedRight - clampedLeft);
+            chart.$shNormalRangeOverlay = {
+                low: instance.state.normalRange.low,
+                high: instance.state.normalRange.high,
+                left: clampedLeft,
+                right: clampedRight,
+                top: chartArea.top,
+                bottom: chartArea.bottom,
+                width
+            };
+            if (!width) return;
             ctx.save();
             ctx.fillStyle = 'rgba(160, 160, 160, 0.25)';
-            ctx.fillRect(Math.max(chartArea.left, left), chartArea.top, Math.min(chartArea.right, right) - Math.max(chartArea.left, left), chartArea.bottom - chartArea.top);
+            ctx.fillRect(clampedLeft, chartArea.top, width, chartArea.bottom - chartArea.top);
             ctx.restore();
         }
     };

@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
 const FIXTURE_CSV = `TEST,STRESN,USUBJID,STRESU,STNRLO,STNRHI,SITEID,SEX,RACE,ARM,SITE
@@ -127,6 +128,12 @@ test.describe('Safety Histogram nextgen demo', () => {
     await expect(page.locator('.sh-listing tbody tr')).toHaveCount(5);
     await page.getByRole('button', { name: '>', exact: true }).click();
     await expect(page.locator('.sh-listing tbody')).toContainText('SUBJ-006');
+    await page.getByRole('button', { name: '>>' }).click();
+    await expect(page.locator('.sh-listing tbody')).toContainText('SUBJ-026');
+    await page.getByRole('button', { name: '<', exact: true }).click();
+    await expect(page.locator('.sh-listing tbody')).toContainText('SUBJ-021');
+    await page.getByRole('button', { name: '<<' }).click();
+    await expect(page.locator('.sh-listing tbody')).toContainText('SUBJ-001');
 
     await page.locator('.sh-listing-search').fill('SUBJ-012');
     await expect(page.locator('.sh-listing tbody tr')).toHaveCount(1);
@@ -135,12 +142,33 @@ test.describe('Safety Histogram nextgen demo', () => {
     await page.locator('.sh-listing-search').fill('');
     await page.locator('.sh-listing th', { hasText: 'Result' }).click();
     await expect(page.locator('.sh-listing th', { hasText: 'Result ▲' })).toBeVisible();
+    await expect(page.locator('.sh-listing tbody tr').first()).toContainText('SUBJ-001');
     await page.locator('.sh-listing th', { hasText: /Result/ }).click();
     await expect(page.locator('.sh-listing th', { hasText: 'Result ▼' })).toBeVisible();
+    await expect(page.locator('.sh-listing tbody tr').first()).toContainText('SUBJ-030');
 
     const download = page.waitForEvent('download');
     await page.locator('.sh-listing-actions button', { hasText: 'Export: CSV' }).click();
-    expect((await download).suggestedFilename()).toBe('safety-histogram-listing.csv');
+    const csvDownload = await download;
+    expect(csvDownload.suggestedFilename()).toBe('safety-histogram-listing.csv');
+    const csv = fs.readFileSync(await csvDownload.path(), 'utf8');
+    expect(csv.split('\n')[0]).toBe('Participant ID,Result,Unit,LLN,ULN,Site ID,Sex,Race,Treatment Group');
+    expect(csv).toContain('SUBJ-030');
+  });
+
+  test('normal range control exposes a stable Chart.js overlay region', async ({ page }) => {
+    await setHarnessSettings(page, { display_normal_range: true });
+    await page.waitForFunction(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay);
+    const overlay = await page.evaluate(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay);
+    expect(overlay.low).toBe(10);
+    expect(overlay.high).toBe(20);
+    expect(overlay.width).toBeGreaterThan(0);
+    expect(overlay.left).toBeGreaterThanOrEqual(0);
+    expect(overlay.right).toBeGreaterThan(overlay.left);
+
+    await setHarnessSettings(page, { display_normal_range: false });
+    await page.waitForFunction(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay === null);
+    expect(await page.evaluate(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay)).toBeNull();
   });
 
   test('x-axis lower and upper controls redraw and normalize invalid ranges', async ({ page }) => {
@@ -156,6 +184,16 @@ test.describe('Safety Histogram nextgen demo', () => {
       window.__safetyHistogramInstance.chart.$shBins.at(-1).upper
     ]);
     expect(domain).toEqual([5, 25, 5, 25]);
+  });
+
+  test('x-axis tick mode switches labels between centers and bin boundaries', async ({ page }) => {
+    await setHarnessSettings(page, { annotate_bin_boundaries: false });
+    const midpointLabels = await page.evaluate(() => window.__safetyHistogramInstance.chart.data.labels);
+    expect(midpointLabels.some(label => label.includes('–'))).toBe(false);
+
+    await page.locator('.sh-control', { hasText: 'X-axis Ticks' }).locator('select').selectOption('true');
+    const boundaryLabels = await page.evaluate(() => window.__safetyHistogramInstance.chart.data.labels);
+    expect(boundaryLabels.some(label => label.includes('–'))).toBe(true);
   });
 
   test('p-value annotations display the approximation and validation disclaimer', async ({ page }) => {

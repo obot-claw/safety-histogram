@@ -427,6 +427,7 @@
     return {
       id: "normal-range-".concat(Math.random().toString(36).slice(2)),
       beforeDatasetsDraw: function beforeDatasetsDraw(chart) {
+        chart.$shNormalRangeOverlay = null;
         if (!instance.state.displayNormalRange || !instance.state.normalRange) return;
         var ctx = chart.ctx,
             chartArea = chart.chartArea,
@@ -446,9 +447,22 @@
         var end = matched[matched.length - 1].index + 0.5;
         var left = scales.x.getPixelForValue(start);
         var right = scales.x.getPixelForValue(end);
+        var clampedLeft = Math.max(chartArea.left, left);
+        var clampedRight = Math.min(chartArea.right, right);
+        var width = Math.max(0, clampedRight - clampedLeft);
+        chart.$shNormalRangeOverlay = {
+          low: instance.state.normalRange.low,
+          high: instance.state.normalRange.high,
+          left: clampedLeft,
+          right: clampedRight,
+          top: chartArea.top,
+          bottom: chartArea.bottom,
+          width: width
+        };
+        if (!width) return;
         ctx.save();
         ctx.fillStyle = 'rgba(160, 160, 160, 0.25)';
-        ctx.fillRect(Math.max(chartArea.left, left), chartArea.top, Math.min(chartArea.right, right) - Math.max(chartArea.left, left), chartArea.bottom - chartArea.top);
+        ctx.fillRect(clampedLeft, chartArea.top, width, chartArea.bottom - chartArea.top);
         ctx.restore();
       }
     };

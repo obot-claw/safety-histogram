@@ -80,4 +80,4 @@ Demo and requirements artifacts:
 - Requirements matrix: `docs/requirements-matrix.md`
 - Issue #6 evidence reconciliation: `docs/evidence/issue-6-reconciliation-2026-06-05.md`
 
-Known gaps in this refactor pass: statistical annotations are browser-side screening approximations, not validated statistical procedures; automated visual regression coverage still needs to be added.
+Known gaps in this refactor pass: statistical annotations are implemented as browser-side screening approximations with disclaimer coverage, not validated statistical procedures; automated visual regression and stronger accessibility coverage still need to be added.

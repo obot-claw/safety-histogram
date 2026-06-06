@@ -10,18 +10,20 @@ Source: RhoInc safety-histogram wiki Technical Documentation and Data Guidelines
 | SH-CTRL-001 | Measure selector updates displayed distribution. | Implemented. |
 | SH-CTRL-002 | Configured filters subset chart data. | Implemented. |
 | SH-CTRL-003 | Participant count updates when filters apply. | Implemented. |
-| SH-CTRL-004 | Normal range checkbox displays normal range overlay when available. | Implemented. |
-| SH-CTRL-005 | Lower/upper x-axis inputs update chart domain and flip invalid ranges. | Implemented; covered by `tests/e2e/safety-histogram.spec.js` once CI runs the Chart.js browser harness. |
+| SH-CTRL-004 | Normal range checkbox displays normal range overlay when available. | Implemented; covered by Chart.js overlay-region harness for enabled/disabled behavior. |
+| SH-CTRL-005 | Lower/upper x-axis inputs update chart domain and flip invalid ranges. | Implemented; invalid-range flip/domain covered by browser harness. Step-by-1 and blur semantics remain optional follow-up coverage. |
 | SH-CTRL-006 | Binning controls support algorithm, quantity, width, and custom mode. | Implemented. |
-| SH-CTRL-007 | X-axis tick mode can show linear centers or bin boundaries. | Implemented. |
+| SH-CTRL-007 | X-axis tick mode can show linear centers or bin boundaries. | Implemented; browser harness asserts labels switch between midpoint and boundary formats. |
 | SH-CHART-001 | Histogram bars show distribution for selected measure and filters. | Implemented using Chart.js. |
 | SH-CHART-002 | Hovering over bars reports count and value range. | Implemented via tooltip and footnote. |
 | SH-CHART-003 | Clicking a bar opens linked listing. | Implemented; covered by Chart.js canvas-selection browser harness. |
 | SH-CHART-004 | Group-by control renders grouped histograms. | Implemented. |
 | SH-CHART-005 | Normality and group-comparison p-value annotations. | Implemented as approximate browser-side screening annotations with info-icon links and validation disclaimer; disclaimer covered by browser harness. |
 | SH-LIST-001 | Listing shows record details for clicked bin. | Implemented. |
-| SH-LIST-002 | Listing pagination supports first/previous/next/last. | Implemented; next-page behavior covered by browser harness. |
-| SH-LIST-003 | Listing CSV export is available. | Implemented; download filename covered by browser harness. |
-| SH-LIST-004 | Listing search and sortable columns. | Implemented; search result filtering and sort indicators covered by browser harness. |
+| SH-LIST-002 | Listing pagination supports first/previous/next/last. | Implemented; first/previous/next/last behavior covered by browser harness. |
+| SH-LIST-003 | Listing CSV export is available. | Implemented; download filename, header, and representative CSV row covered by browser harness. |
+| SH-LIST-004 | Listing search and sortable columns. | Implemented; search result filtering plus sort indicators and row-order changes covered by browser harness. |
 | SH-API-001 | Expose clean nextgen lifecycle API. | Implemented: `init`, `setData`, `setSettings`, `render`, `resize`, `destroy`; covered by browser lifecycle API harness. |
 | SH-API-002 | Do not preserve Webcharts API as a requirement. | Implemented by replacing Webcharts dependency. |
+
+Pending evidence hardening: automated visual regression and stronger accessibility coverage are not yet present in this PR; keep them as explicit follow-up/ready-review gates if required.
