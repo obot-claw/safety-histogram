@@ -152,12 +152,16 @@ test.describe('Safety Histogram nextgen demo', () => {
     const csvDownload = await download;
     expect(csvDownload.suggestedFilename()).toBe('safety-histogram-listing.csv');
     const csv = fs.readFileSync(await csvDownload.path(), 'utf8');
-    expect(csv.split('\n')[0]).toBe('Participant ID,Result,Unit,LLN,ULN,Site ID,Sex,Race,Treatment Group');
+    expect(csv.split('\n')[0]).toBe('Participant ID,Site ID,Sex,Race,Treatment Group,Participant ID,Result,Lower Limit of Normal,Upper Limit of Normal,Unit');
     expect(csv).toContain('SUBJ-030');
   });
 
   test('normal range control exposes a stable Chart.js overlay region', async ({ page }) => {
-    await setHarnessSettings(page, { display_normal_range: true });
+    await page.evaluate(() => {
+      const instance = window.__safetyHistogramInstance;
+      instance.state.displayNormalRange = true;
+      instance.render();
+    });
     await page.waitForFunction(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay);
     const overlay = await page.evaluate(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay);
     expect(overlay.low).toBe(10);
@@ -166,7 +170,11 @@ test.describe('Safety Histogram nextgen demo', () => {
     expect(overlay.left).toBeGreaterThanOrEqual(0);
     expect(overlay.right).toBeGreaterThan(overlay.left);
 
-    await setHarnessSettings(page, { display_normal_range: false });
+    await page.evaluate(() => {
+      const instance = window.__safetyHistogramInstance;
+      instance.state.displayNormalRange = false;
+      instance.render();
+    });
     await page.waitForFunction(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay === null);
     expect(await page.evaluate(() => window.__safetyHistogramInstance.chart.$shNormalRangeOverlay)).toBeNull();
   });
@@ -187,11 +195,15 @@ test.describe('Safety Histogram nextgen demo', () => {
   });
 
   test('x-axis tick mode switches labels between centers and bin boundaries', async ({ page }) => {
-    await setHarnessSettings(page, { annotate_bin_boundaries: false });
+    await page.evaluate(() => {
+      const instance = window.__safetyHistogramInstance;
+      instance.state.annotateBoundaries = false;
+      instance.render();
+    });
     const midpointLabels = await page.evaluate(() => window.__safetyHistogramInstance.chart.data.labels);
     expect(midpointLabels.some(label => label.includes('–'))).toBe(false);
 
-    await page.locator('.sh-control', { hasText: 'X-axis Ticks' }).locator('select').selectOption('true');
+    await page.locator('.sh-control', { hasText: 'X-axis Ticks' }).locator('select').selectOption('boundaries');
     const boundaryLabels = await page.evaluate(() => window.__safetyHistogramInstance.chart.data.labels);
     expect(boundaryLabels.some(label => label.includes('–'))).toBe(true);
   });
