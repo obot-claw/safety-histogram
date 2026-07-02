@@ -1,3 +1,6 @@
 node_modules
 *.sublime*
 .DS_Store
+# Playwright artifacts
+test-results/
+playwright-report/

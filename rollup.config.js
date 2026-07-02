@@ -1,5 +1,4 @@
 import babel from 'rollup-plugin-babel';
-import json from 'rollup-plugin-json';
 
 const pkg = require('./package.json');
 
@@ -17,29 +16,17 @@ export default {
         file: pkg.main,
         format: 'umd',
         globals: {
-            d3: 'd3',
-            webcharts: 'webCharts'
+            'chart.js': 'Chart'
         },
     },
-    external: (function() {
-        const dependencies = Object.keys(pkg.dependencies)
-            .filter(dependency => dependency !== 'jerzy');
-
-        return dependencies;
-    }()),
+    external: Object.keys(pkg.dependencies),
     plugins: [
         babel({
             exclude: 'node_modules/**',
             presets: [
                 [ '@babel/preset-env' ]
             ],
-            //plugins: [
-            //    '@babel/plugin-external-helpers'
-            //],
             babelrc: false
-        }),
-        json({
-            include: ['settings-schema.json']
         }),
     ]
 };

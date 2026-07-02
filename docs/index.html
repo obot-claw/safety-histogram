@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Safety Histogram Nextgen Demo</title>
+  <meta charset="utf-8">
+  <style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:2rem;max-width:1100px}li{margin:.35rem 0}.warning{background:#fff7ed;border:1px solid #fed7aa;padding:1rem;border-radius:8px}</style>
+</head>
+<body>
+  <h1>Safety Histogram Nextgen Demo</h1>
+  <p>This branch replaces the legacy Webcharts renderer with a Chart.js-based implementation.</p>
+  <p><a href="../test-page/">Open the interactive test page</a></p>
+  <h2>Manual test checklist</h2>
+  <ul>
+    <li>Change Measure and confirm the distribution and axis labels update.</li>
+    <li>Apply Site/Sex/Race/Arm/Participant filters and confirm participant counts update.</li>
+    <li>Toggle Normal Range and confirm the gray range overlay appears.</li>
+    <li>Edit Lower/Upper limits and confirm the histogram redraws.</li>
+    <li>Change Algorithm, Quantity, and Width; confirm bin counts and labels update.</li>
+    <li>Switch X-axis Ticks between linear and bin boundaries.</li>
+    <li>Hover a bar and confirm tooltip/footnote describe the bin.</li>
+    <li>Click a bar and confirm the linked listing appears.</li>
+    <li>Use listing pagination, search, sortable columns, and CSV export.</li>
+    <li>Change Group by and confirm grouped histograms render.</li>
+  </ul>
+  <div class="warning"><strong>Known gaps:</strong> p-value annotations are browser-side screening approximations pending reviewer acceptance or deferred statistical validation; automated visual regression and stronger accessibility evidence are still pending. Listing pagination/search/sort/export and the Chart.js normal-range overlay now have executable harness coverage in PR #1.</div>
+</body>
+</html>

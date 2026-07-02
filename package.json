@@ -1,10 +1,10 @@
 {
   "name": "safety-histogram",
   "description": "Histogram showing distribution of lab measures, vital signs and other related measures in clinical trials.",
-  "version": "2.5.0",
+  "version": "3.0.0-alpha.0",
   "author": "Rho, Inc.",
   "license": "MIT",
-  "homepage": "https://github.com/rhoinc/safety-histogram#readme",
+  "homepage": "https://github.com/obot-claw/safety-histogram#readme",
   "module": "./src/index.js",
   "main": "./safetyHistogram.js",
   "keywords": [
@@ -19,44 +19,34 @@
     "explorer"
   ],
   "dependencies": {
-    "d3": "^3",
-    "webcharts": "^1.11.6"
+    "chart.js": "^4.4.9"
   },
   "scripts": {
-    "build": "npm audit fix && npm run bundle && npm run format && npm run build-wiki && npm run check-settings-schema",
-    "build-wiki": "npm run build-configuration-wiki && npm run build-data-guidelines-wiki",
-    "build-configuration-wiki": "node ./scripts/build-configuration-wiki.js",
-    "build-data-guidelines-wiki": "node ./scripts/build-data-guidelines-wiki.js",
+    "build": "npm run bundle",
     "bundle": "rollup -c",
-    "check-settings-schema": "node ./scripts/check-settings-schema.js",
     "format": "npm run format-src && npm run format-bundle",
     "format-src": "prettier --print-width=100 --tab-width=4 --single-quote --write \"./src/**/!(*styles).js\"",
     "format-bundle": "prettier --print-width=100 --tab-width=4 --single-quote --write ./safetyHistogram.js",
-    "test": "node ./test/shapiro-wilk-normality-test/generate-results.js && node ./test/kolmogorov-smirnov-two-sample-test/generate-results.js",
-    "test-page": "start chrome ./test-page/index.html && start firefox ./test-page/index.html && start iexplore file://%CD%/test-page/index.html",
-    "watch": "rollup -c -w"
+    "test": "npm run build",
+    "watch": "rollup -c -w",
+    "demo": "python3 -m http.server 8098",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",
-    "@babel/plugin-external-helpers": "^7.2.0",
     "@babel/preset-env": "^7.4.5",
-    "@babel/register": "^7.7.0",
-    "csv-parse": "^4.8.2",
-    "csv-writer": "^1.5.0",
-    "node-fetch": "^2.6.0",
+    "@playwright/test": "^1.60.0",
+    "playwright": "^1.60.0",
     "prettier": "^1.19.1",
     "rollup": "^1.27.1",
-    "rollup-plugin-babel": "^4.3.3",
-    "rollup-plugin-json": "^4.0.0"
+    "rollup-plugin-babel": "^4.3.3"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/RhoInc/safety-histogram.git"
+    "url": "https://github.com/obot-claw/safety-histogram.git"
   },
   "bugs": {
-    "url": "https://github.com/RhoInc/safety-histogram/issues"
-  },
-  "optionalDependencies": {
-    "jerzy": "^0.2.1"
+    "url": "https://github.com/obot-claw/safety-histogram/issues"
   }
 }
